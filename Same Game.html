@@ -1,0 +1,221 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<title>Same Game</title>
+	<meta charset="UTF-8"> 
+	<style type="text/css">
+		p{
+			font-size: 10px;
+			color:red;
+			font-family: "Comic Sans MS", cursive, sans-serif;
+		}
+		.cell{
+			position: fixed;
+			border-radius: 100%;
+			border-color: black;
+			border-style: solid;
+			width: 40px;
+			height: 40px;
+		}
+		.hover{
+			opacity: 0.6;
+		}
+		h1{
+			position: fixed;
+			font-size: 30px;
+			top: -15px;
+			left: 180px;
+			color: indigo;
+			font-family: "Comic Sans MS", cursive, sans-serif;
+		}
+		body{
+			background-color: orange;
+		}
+	</style>
+	<script src="http://ajax.googleapis.com/ajax/libs/jquery/1.11.2/jquery.min.js"></script>
+</head>
+<body>
+	<p>Chao Yu, 2015.5.3<br/></p>
+	<h1><h1>
+	<script type="text/javascript">
+		var COLORS = ["red","green","blue","yellow"];
+		var C_NUM = 10; //number of cells per row and col
+		var CELL_SPACING = 7; //space between each cells
+		var WIDTH = 40;
+		var PADDING = 50;
+		var cells_remaining = 0;
+		//start
+		$(document).ready(function(){
+			var b_arr = new Array(); //keep the cells in a 2d array
+			var removal_arr = new Array();
+			//set up the board and randomize the cells
+			function init(){
+				for (var i = 0; i < C_NUM; i++){
+					var row = new Array();
+					for (var j = 0; j < C_NUM; j++){
+						//generate new div
+						var $cell = $("<div></div>");
+						//randomize color
+						var color = Math.floor(Math.random()*(COLORS.length));
+						$cell.css("background-color",COLORS[color]);
+						//set position
+						$cell.css("left",""+(PADDING+(CELL_SPACING+WIDTH)*j)+"px");
+						$cell.css("top",""+(PADDING+(CELL_SPACING+WIDTH)*i)+"px");
+						//link to css
+						$cell.addClass("cell");
+						//add to html
+						$cell.appendTo("body");
+						//keep a reference in array
+						row.push({div:$cell, c:color});
+						//keep the numbers of cells
+						cells_remaining++;
+					}
+					b_arr.push(row);
+				}
+				$('h1').html(""+cells_remaining+" Cells Left");
+			};
+			//recursive method to remove cell
+			function cell_removal(row,col){
+				b_arr[row][col].o = b_arr[row][col].c;
+				b_arr[row][col].c = -1; //-1 indicates removed cell
+				removal_arr.push({r:row,c:col});
+				b_arr[row][col].div.addClass("hover");
+				//up
+				if (row > 0 && b_arr[row][col].o === b_arr[row-1][col].c){
+					cell_removal(row-1,col);
+				}
+				//down
+				if (row < C_NUM-1 && b_arr[row][col].o === b_arr[row+1][col].c){
+					cell_removal(row+1,col);
+				}
+				//left
+				if (col > 0 && b_arr[row][col].o === b_arr[row][col-1].c){
+					cell_removal(row,col-1);
+				}
+				//right
+				if (col < C_NUM-1 && b_arr[row][col].o === b_arr[row][col+1].c){
+					cell_removal(row,col+1);
+				}
+			};
+			function pull_down(){
+				var i,j,k;
+				for (j = 0; j < C_NUM; j++){
+					k = C_NUM-1;
+					for (i = C_NUM-1; i >= 0; i--){
+						//pull the cell down if it isn't empty
+						if (b_arr[i][j].c != -1){
+							if (k != i){
+								//place the cell
+								b_arr[k][j].div = b_arr[i][j].div;
+								b_arr[k][j].c = b_arr[i][j].c;
+								//animate
+								b_arr[k][j].div.animate({"top":"+="+((k-i)*(WIDTH+CELL_SPACING))+"px"},"slow");
+							}
+							k--;
+						}
+					}
+					//console.log("K: "+k);
+					//clear remaining cells on the top
+					for (i = k; i >= 0; i--){
+						b_arr[i][j].c = -1;
+					}
+				}
+			}
+			function is_valid_spot(row,col){
+				if ((b_arr[row][col].c != -1) &&    //not empty
+					((row > 0 && b_arr[row-1][col].c === b_arr[row][col].c)      || //up
+					(row < C_NUM-1 && b_arr[row+1][col].c === b_arr[row][col].c) || //down
+					(col > 0 && b_arr[row][col-1].c === b_arr[row][col].c)       || //left
+					(col < C_NUM-1 && b_arr[row][col+1].c === b_arr[row][col].c))){  //right
+						return true;
+				}
+				else {
+						return false;
+				}
+			}
+			var hover_in = function(){
+				//find which cell is it
+				var row,col;
+				for (var i = 0; i < C_NUM; i++){
+					for (var j = 0; j < C_NUM; j++){
+						if (b_arr[i][j].div.get(0) === $(this).get(0)){
+							row = i;
+							col = j;
+						}
+					}
+				}
+				//console.log(row,col);
+				//console.log(b_arr[row][col].c);
+				//console.log(row,col);
+				if (is_valid_spot(row,col)){
+					//find neiboring cells with the same color
+					cell_removal(row,col);
+				}
+			}
+			var hover_out = function(){
+				for (var i = removal_arr.length-1; i >= 0; i--){
+					b_arr[removal_arr[i].r][removal_arr[i].c].div.removeClass("hover");
+					b_arr[removal_arr[i].r][removal_arr[i].c].c = b_arr[removal_arr[i].r][removal_arr[i].c].o;
+					removal_arr.pop();
+				}
+			}
+			//game start
+			init();
+
+			//hover in
+			$(".cell").hover(hover_in,hover_out);
+			//click cell
+			$(".cell").click(function(){
+				//remove cell
+				for (var i = removal_arr.length-1; i >= 0; i--){
+					var $div = b_arr[removal_arr[i].r][removal_arr[i].c].div;
+					$div.removeClass("hover");
+					$div.fadeOut("fast");
+					removal_arr.pop();
+					cells_remaining--;
+				}
+				//pull
+				pull_down();
+
+				//modify text
+				$('h1').html(""+cells_remaining+" Cells Left");
+
+				//check win or lose
+				var win = true, lose = true;
+				for (var i = 0; i < C_NUM; i++){
+					for (var j = 0; j < C_NUM; j++){
+						if (is_valid_spot(i,j)){
+							lose = false;
+						}
+						if (b_arr[i][j].c != -1){
+							win = false;
+						}
+					}
+				}
+				if (win){
+					var ok = confirm("You Win! Play again?");
+					if (ok){
+						window.alert("Good Luck!");
+						document.location.reload();
+					}
+					else{
+						window.alert("Sorry, but you have to! And I mean it!");
+						document.location.reload();
+					}
+				}
+				else if (lose){
+					var ok = confirm("You Lose, hahahaha! Play again?");
+					if (ok){
+						window.alert("Good Luck!");
+						document.location.reload();
+					}
+					else{
+						window.alert("Sorry, but you have to! And I mean it!");
+						document.location.reload();
+					}
+				}
+			});
+		});
+	</script>
+</body>
+</html>
